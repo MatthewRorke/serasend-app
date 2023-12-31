@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { getAssignedPackage } from "../api/packageApi";
 import { getUser } from "../api/userApi";
 import { clearLocal, getFromLocal } from "../utils/Utils";
 
@@ -33,11 +34,15 @@ const AuthWrapper = ({ children }) => {
       if (!token) {
         logout();
       }
-      const userData = await getUser(token);
+      const [userData, userPackageData] = await Promise.all([getUser(token), getAssignedPackage(token)]);
+
+      const expireAt = new Date(userPackageData.data?.package?.expireAt?.date);
+      const currentTime = new Date();
+
       if (userData && userData.success) {
         if (!userData.data.verifiedEmail) {
           handleUnverifiedUser();
-        } else if (!userData.data.packageName) {
+        } else if (!userPackageData || !userPackageData.success || expireAt < currentTime) {
           handleUnsubscribedUser();
         } else {
           handleVerifiedUser();

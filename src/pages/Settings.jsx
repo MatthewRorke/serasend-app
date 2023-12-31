@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ZodError, z } from "zod";
 
-import { getPackages } from "../api/packageApi";
+import { getAssignedPackage, getPackages } from "../api/packageApi";
 import { changeUserPassword } from "../api/userApi";
 import ErrorAlert from "../components/ErrorAlert";
 import LoadingButton from "../components/LoadingButton";
@@ -29,7 +29,7 @@ function Settings() {
 
   const [showPackage, setShowPackage] = useState(0);
   const [subscriptionPackages, setSubscriptionPackages] = useState(0);
-
+  const [assignedPackageId, setAssignedPackageId] = useState(1);
   const [requirements, setRequirements] = useState({
     length: false,
     uppercase: false,
@@ -122,7 +122,6 @@ function Settings() {
   const handlePackageSelection = (e) => {
     e.preventDefault();
     storeInLocal("selectedPackagePurchase", e.target.id);
-    storeInLocal("selectedPackagePurchase", showPackage);
     navigateTo("/packages/checkout");
   };
 

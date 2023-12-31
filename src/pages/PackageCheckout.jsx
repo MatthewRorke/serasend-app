@@ -1,28 +1,28 @@
+import crypto from "crypto";
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getPackages, getSinglePackage } from "../api/packageApi";
+import { getPackageCheckoutForm, getPackages, getSinglePackage } from "../api/packageApi";
 import LoadingButton from "../components/LoadingButton";
 import PriceCard from "../components/PriceCard";
 import MainLayout from "../layout/MainLayout";
 import { PACKAGE_LISTING } from "../utils/Constants";
 import { getFromLocal, storeInLocal } from "../utils/Utils";
 
+const buttonString = `<button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded text-sm px-5 py-2.5 mr-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 inline-flex items-center w-full justify-center">
+<span class="flex-shrink-0">Checkout</span>
+</button>
+</form>`;
+
 function PackageCheckout() {
   const navigateTo = useNavigate();
   const [subscriptionPackages, setSubscriptionPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(true);
   const [loadingCheckout, setLoadingCheckout] = useState(false);
-
+  const [checkoutForm, setCheckoutForm] = useState(null);
   const token = getFromLocal("token");
   const packageId = getFromLocal("selectedPackagePurchase");
-
-  const checkoutHandler = (e) => {
-    e.preventDefault();
-    setLoadingCheckout(true);
-    storeInLocal("selectedPackagePurchase", e.target.id);
-    navigateTo("/packages/checkout");
-  };
 
   useEffect(() => {
     setLoadingPackages(true);
@@ -32,8 +32,10 @@ function PackageCheckout() {
       })
       .finally(() => {
         setLoadingPackages(false);
-        console.log(subscriptionPackages);
       });
+    getPackageCheckoutForm(token, packageId).then((res) => {
+      setCheckoutForm(res.data.message + buttonString);
+    });
   }, []);
 
   return (
@@ -42,7 +44,7 @@ function PackageCheckout() {
         <div className='bg-white rounded shadow-md w-full space-y-8 m-3 p-6'>
           <h2 className='text-2xl font-bold mb-4'>Order Summary</h2>
           <div class='px-4 pt-8'>
-            {!loadingPackages ? (
+            {!loadingPackages && checkoutForm ? (
               <div class='mt-8 space-y-3 rounded-lg border bg-white px-2 py-4 sm:px-6'>
                 <div class='flex flex-col rounded-lg bg-white sm:flex-row'>
                   <div class='flex w-full flex-col px-4 py-4'>
@@ -55,14 +57,8 @@ function PackageCheckout() {
                     </p>
                   </div>
                 </div>
-                <LoadingButton
-                  primaryText={"Checkout"}
-                  secondaryText={"Processing..."}
-                  loading={loadingCheckout}
-                  callback={checkoutHandler}
-                  width={"full"}
-                  type={"submit"}
-                />
+
+                <div dangerouslySetInnerHTML={{ __html: checkoutForm }} />
               </div>
             ) : (
               <div role='status' class='flex items-center justify-center h-screen'>

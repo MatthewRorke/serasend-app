@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 
+import { getAssignedPackage } from "../api/packageApi";
 import { getUser } from "../api/userApi";
 import Card1 from "../components/Card1";
 import MainLayout from "../layout/MainLayout";
@@ -22,6 +23,8 @@ function Dashboard() {
   const [packageItem, setPackageItem] = useState({
     name: "",
     rate: 0,
+    maxRequests: 0,
+    id: null,
   });
 
   const [wallet, setWallet] = useState({
@@ -36,21 +39,21 @@ function Dashboard() {
   useEffect(() => {
     const cachedUserData = JSON.parse(getFromLocal("userData"));
     const lastUpdatedTimestamp = getFromLocal("userDataTimestamp");
+    const cachedPackageData = JSON.parse(getFromLocal("userPackage"));
+    const maxTimeInterval = -1 * 60 * 1000; // 10 Minutes
 
-    const maxTimeInterval = 10 * 60 * 1000; // 10 Minutes
-
-    if (cachedUserData && lastUpdatedTimestamp && Date.now() - parseInt(lastUpdatedTimestamp, 10) < maxTimeInterval) {
+    if (
+      cachedUserData &&
+      lastUpdatedTimestamp &&
+      cachedPackageData &&
+      Date.now() - parseInt(lastUpdatedTimestamp, 10) < maxTimeInterval
+    ) {
       setUser(cachedUserData.user);
-      setPackageItem(cachedUserData.packageItem);
       setWallet(cachedUserData.wallet);
+      setPackageItem(cachedPackageData);
     } else {
       getUser(token).then((res) => {
         if (res.success) {
-          setPackageItem((prev) => ({
-            ...prev,
-            name: res.data.packageName,
-            rate: res.data.packageRate || 0,
-          }));
           setWallet((prev) => ({ ...prev, amount: res.data.amount }));
           setUser((prev) => ({ ...prev, alias: res.data.alias, email: res.data.email }));
 
@@ -58,11 +61,32 @@ function Dashboard() {
             "userData",
             JSON.stringify({
               user: { alias: res.data.alias, email: res.data.email },
-              packageItem: { name: res.data.packageName, rate: res.data.packageRate },
               wallet: { amount: res.data.amount },
             })
           );
           storeInLocal("userDataTimestamp", Date.now());
+
+          getAssignedPackage(token).then((prev) => {
+            if (prev.success) {
+              const packageData = {
+                name: prev.data.package.packageName,
+                rate: prev.data.package.monthlyCosts || 0,
+                maxRequests: prev.data.package.maxRequests || 0,
+                id: prev.data.package.packageId,
+                expireAt: prev.data.package.expireAt.date,
+              };
+              storeInLocal("userPackage", JSON.stringify(packageData));
+              setPackageItem(packageData);
+            }
+          });
+
+          storeInLocal(
+            "userData",
+            JSON.stringify({
+              user: { alias: res.data.alias, email: res.data.email },
+              wallet: { amount: res.data.amount },
+            })
+          );
         }
       });
     }
@@ -73,10 +97,23 @@ function Dashboard() {
       <div class='flex space-x-4'>
         <div class='flex-1 bg-white p-6 m-6 rounded-lg shadow-md min-w-[200px]'>
           <h2 class='text-xl font-semibold mb-4'>Current Subscription</h2>
-          <p class='text-gray-600'>{packageItem.name || "Unspecified"}</p>
+          <p class='text-blue-500 font-semibold'>{packageItem.name || "Unspecified"}</p>
           <div class='mt-4'>
-            <span class='text-blue-500 font-semibold'>{`${packageItem.rate?.toFixed(2)}`}</span>
+            <span class='text-green-500 font-semibold'>{`${packageItem.rate?.toFixed(2)}`}</span>
             <span class='text-gray-500'> R / month</span>
+          </div>
+          <div class='mt-4'>
+            <span class='text-gray-500'>
+              {" "}
+              Expires at:{" "}
+              {`${new Date(packageItem.expireAt).toLocaleDateString("en-UK", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}`}
+            </span>
           </div>
         </div>
 

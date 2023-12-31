@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = process.env.BACKEND_DOMAIN;
 
 /**
  * Makes API call to login a user
