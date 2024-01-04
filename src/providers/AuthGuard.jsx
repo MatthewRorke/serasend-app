@@ -35,10 +35,8 @@ const AuthWrapper = ({ children }) => {
         logout();
       }
       const [userData, userPackageData] = await Promise.all([getUser(token), getAssignedPackage(token)]);
-
-      const expireAt = new Date(userPackageData.data?.package?.expireAt?.date);
+      const expireAt = new Date(userPackageData?.data?.package?.expireAt?.date || 0);
       const currentTime = new Date();
-
       if (userData && userData.success) {
         if (!userData.data.verifiedEmail) {
           handleUnverifiedUser();
@@ -51,7 +49,6 @@ const AuthWrapper = ({ children }) => {
         logout();
       }
     } catch (error) {
-      console.error("Error:", error);
       logout();
     }
   };
